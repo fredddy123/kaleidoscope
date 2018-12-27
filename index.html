@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Kaleidoscope</title>
+    <style>
+        * {
+            margin: 0px;
+            padding: 0px;
+        }
+        html, body {
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body>
+    <canvas id='canvas'></canvas>
+    <script>
+        const canvas = document.getElementById('canvas');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        class Drawer {
+            constructor({canvas, options}) {
+                const {
+                    crossColor,
+                    penColor,
+                    penSize
+                } = options;
+
+                this.canvas = canvas;
+                this.canvasCenter = { x: canvas.width / 2, y: canvas.height / 2 };
+                this.ctx = canvas.getContext('2d');
+                this.crossColor = crossColor;
+                this.penColor = penColor;
+                this.penSize = penSize;
+
+                this.ctx.strokeStyle = this.crossColor;
+            }
+
+            drawCross() {
+                const centerX = this.canvas.width / 2;
+                const centerY = this.canvas.height / 2;
+
+                this.ctx.beginPath();
+                this.ctx.moveTo(0, centerY);
+                this.ctx.lineTo(this.canvas.width, centerY);
+                this.ctx.lineWidth = 1;
+                this.ctx.stroke();
+
+                this.ctx.beginPath();
+                this.ctx.moveTo(centerX, 0);
+                this.ctx.lineTo(centerX, this.canvas.height);
+                this.ctx.lineWidth = 1;
+                this.ctx.stroke();
+            }
+
+            fillCircle({ x: drawerAxesX, y: drawerAxesY }) {
+                const { x, y } = this.drawerToScreenAxes({ x: drawerAxesX, y: drawerAxesY });
+
+                this.ctx.fillStyle = this.getPenColor();
+
+                this.ctx.fill
+                this.ctx.beginPath();
+                this.ctx.arc(x, y, this.penSize / 2, 0, 2 * Math.PI);
+                this.ctx.fill();
+            }
+
+            screenToDrawerAxes({ x, y }) {
+                return {
+                    x: x - this.canvasCenter.x,
+                    y: y - this.canvasCenter.y
+                }
+            }
+
+            drawerToScreenAxes({ x, y }) {
+                return {
+                    x: x + this.canvasCenter.x,
+                    y: y + this.canvasCenter.y
+                }
+            }
+
+            drawLine({ start, end }) {
+                this.ctx.beginPath();
+                const startDrawerAxes = this.drawerToScreenAxes(start);
+                const endDrawerAxes = this.drawerToScreenAxes(end);
+
+                this.ctx.moveTo(startDrawerAxes.x, startDrawerAxes.y);
+                this.ctx.lineTo(endDrawerAxes.x, endDrawerAxes.y);
+                this.ctx.lineWidth = this.penSize;
+                this.ctx.strokeStyle = this.getPenColor();
+                this.ctx.stroke();
+            }
+
+            setPenColor({ red, green, blue }) {
+                this.penColor = { red, green, blue };
+            }
+
+            getPenColor() {
+                const { red, green, blue } = this.penColor;
+                return `rgb(${red},${green},${blue})`;
+            }
+        }
+
+        class Kaleidoscope {
+            constructor() {
+                this.drawer = new Drawer({
+                    canvas,
+                    options: {
+                        crossColor: 'rgb(230,230,230)',
+                        penColor: { red: 100, green: 200, blue: 220 },
+                        penSize: 9
+                    }
+                });
+
+                this.gradiendChange = {
+                    red: 1,
+                    green: 1,
+                    blue: 1
+                };
+            }
+
+            drawCross() {
+                this.drawer.drawCross();
+            }
+
+            startDrawing({ x, y }) {
+                const drawerAxes = this.drawer.screenToDrawerAxes({x, y});
+
+                this.lastMove = drawerAxes;
+                
+                // this.quarters = {
+                //     'xy': { x, y },
+                //     '-xy': { x: -x, y },
+                //     'x-y': { x, y: -y },
+                //     '-x-y': { x: -x, y: -y }
+                // };
+
+                this.isDrawing = true;
+            }
+
+            draw({ x: screenAxesX, y: screenAxesY }) {
+                const { x, y } = this.drawer.screenToDrawerAxes({x: screenAxesX, y: screenAxesY});
+                
+                this.drawer.drawLine({start: { x: this.lastMove.x, y: this.lastMove.y }, end: { x, y }});
+                this.drawer.drawLine({start: { x: -this.lastMove.x, y: this.lastMove.y }, end: { x: -x, y }});
+                this.drawer.drawLine({start: { x: this.lastMove.x, y: -this.lastMove.y }, end: { x, y: -y }});
+                this.drawer.drawLine({start: { x: -this.lastMove.x, y: -this.lastMove.y }, end: { x: -x, y: -y }});
+
+                if (this.drawer.penColor.red > 255 || this.drawer.penColor.red < 0) {
+                    this.gradiendChange.red *= -1;
+                }
+
+                if (this.drawer.penColor.green > 255 || this.drawer.penColor.green < 0) {
+                    this.gradiendChange.green *= -1;
+                }
+
+                if (this.drawer.penColor.blue > 255 || this.drawer.penColor.blue < 0) {
+                    this.gradiendChange.blue *= -1;
+                }
+
+                this.drawer.setPenColor({
+                    red: this.drawer.penColor.red,
+                    green: this.drawer.penColor.green,
+                    // red: 80 + (this.drawer.penColor.red+5) % 120,
+                    // green: 80 + (this.drawer.penColor.green+0.8) % 220,
+                    red: this.drawer.penColor.red+2*this.gradiendChange.red,
+                    green: this.drawer.penColor.green+3*this.gradiendChange.green,
+
+                    // // green: this.drawer.penColor.red+1*this.gradiendChange.red,
+                    blue: this.drawer.penColor.blue+1*this.gradiendChange.blue,
+                });
+                this.lastMove = { x, y };
+
+                this.drawer.fillCircle({ x, y });
+
+                this.drawer.fillCircle({ x: -x, y });
+                this.drawer.fillCircle({ x: -x, y: -y });
+                this.drawer.fillCircle({ x, y: -y });
+            }
+
+            stopDrawing() {
+                this.isDrawing = false;
+            }
+        }
+
+        const kaleidoscope = new Kaleidoscope();
+        kaleidoscope.drawCross();
+
+        canvas.onmousedown = event => {
+            kaleidoscope.startDrawing({
+                x: event.clientX,
+                y: event.clientY
+            });
+            // kaleidoscope.fillCircle({
+            //     x: event.clientX,
+            //     y: event.clientY
+            // });
+        };
+
+        canvas.onmousemove = event => {
+            if (!kaleidoscope.isDrawing) {
+                return;
+            }
+
+            kaleidoscope.draw({
+                x: event.clientX,
+                y: event.clientY
+            });
+        };
+
+        canvas.onmouseup = event => {
+            kaleidoscope.stopDrawing();
+        };
+
+        // canvas.onclick = event => {
+        //     kaleidoscope.fillCircle({
+        //         x: event.clientX,
+        //         y: event.clientY
+        //     });
+        // };
+
+        // class Kaleidoscope {
+        //     constructor({sectorsQty}) {
+
+        //     }
+        // }
+
+        // class KaleidoscopeDrawer {
+        //     constructor({ kaleidoscope, drawer }) {
+        //         this.kaleidoscope = kaleidoscope;
+        //         this.drawer = drawer;
+        //     }
+        // }
+    </script>
+</body>
+</html>
