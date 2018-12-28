@@ -127,16 +127,7 @@
             }
 
             startDrawing({ x, y }) {
-                const drawerAxes = this.drawer.screenToDrawerAxes({x, y});
-
-                this.lastMove = drawerAxes;
-                
-                // this.quarters = {
-                //     'xy': { x, y },
-                //     '-xy': { x: -x, y },
-                //     'x-y': { x, y: -y },
-                //     '-x-y': { x: -x, y: -y }
-                // };
+                this.lastMove = this.drawer.screenToDrawerAxes({x, y});
 
                 this.isDrawing = true;
             }
@@ -189,51 +180,31 @@
         const kaleidoscope = new Kaleidoscope();
         kaleidoscope.drawCross();
 
-        canvas.onmousedown = event => {
+        canvas.onmousedown = canvas.ontouchstart = event => {
+            const clientX = event.clientX || event.touches[0].clientX;
+            const clientY = event.clientY || event.touches[0].clientY;
             kaleidoscope.startDrawing({
-                x: event.clientX,
-                y: event.clientY
+                x: clientX,
+                y: clientY
             });
-            // kaleidoscope.fillCircle({
-            //     x: event.clientX,
-            //     y: event.clientY
-            // });
         };
 
-        canvas.onmousemove = event => {
+        canvas.onmousemove = canvas.ontouchmove = event => {
             if (!kaleidoscope.isDrawing) {
                 return;
             }
 
+            const clientX = event.clientX || event.touches[0].clientX;
+            const clientY = event.clientY || event.touches[0].clientY;
             kaleidoscope.draw({
-                x: event.clientX,
-                y: event.clientY
+                x: clientX,
+                y: clientY
             });
         };
 
-        canvas.onmouseup = event => {
+        canvas.onmouseup = canvas.ontouchend = event => {
             kaleidoscope.stopDrawing();
         };
-
-        // canvas.onclick = event => {
-        //     kaleidoscope.fillCircle({
-        //         x: event.clientX,
-        //         y: event.clientY
-        //     });
-        // };
-
-        // class Kaleidoscope {
-        //     constructor({sectorsQty}) {
-
-        //     }
-        // }
-
-        // class KaleidoscopeDrawer {
-        //     constructor({ kaleidoscope, drawer }) {
-        //         this.kaleidoscope = kaleidoscope;
-        //         this.drawer = drawer;
-        //     }
-        // }
     </script>
 </body>
 </html>
